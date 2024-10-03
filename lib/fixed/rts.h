@@ -108,6 +108,15 @@ bool sleeping(const unit u);
 
 /* ***** Memory builtins ***** */
 
+struct memory_buffer {
+  uint8_t *buffer;
+  bool *mask;
+  uint64_t size;
+};
+
+extern struct memory_buffer sail_memory;
+extern struct memory_buffer sail_tags;
+
 void write_mem(uint64_t, uint64_t);
 uint64_t read_mem(uint64_t);
 

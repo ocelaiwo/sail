@@ -119,30 +119,8 @@ bool sleeping(const unit u)
 
 /* ***** Sail memory builtins ***** */
 
-/*
- * We organise memory available to the sail model into a linked list
- * of dynamically allocated MASK + 1 size blocks.
- */
-struct block {
-  uint64_t block_id;
-  uint8_t *mem;
-  struct block *next;
-};
-
-struct block *sail_memory = NULL;
-
-struct tag_block {
-  uint64_t block_id;
-  bool *mem;
-  struct tag_block *next;
-};
-
-struct tag_block *sail_tags = NULL;
-
-/*
- * Must be one less than a power of two.
- */
-uint64_t MASK = 0xFFFFFFul;
+struct memory_buffer sail_memory;
+struct memory_buffer sail_tags;
 
 /*
  * All sail vectors are at least 64-bits, but only the bottom 8 bits
@@ -150,77 +128,22 @@ uint64_t MASK = 0xFFFFFFul;
  */
 void write_mem(uint64_t address, uint64_t byte)
 {
-  uint64_t mask = address & ~MASK;
-  uint64_t offset = address & MASK;
-
-  struct block *current = sail_memory;
-
-  while (current != NULL) {
-    if (current->block_id == mask) {
-      current->mem[offset] = (uint8_t) byte;
-      return;
-    } else {
-      current = current->next;
-    }
-  }
-
-  /*
-   * If we couldn't find a block matching the mask, allocate a new
-   * one, write the byte, and put it at the front of the block list.
-   */
-  struct block *new_block = (struct block *)malloc(sizeof(struct block));
-  new_block->block_id = mask;
-  new_block->mem = (uint8_t *)calloc(MASK + 1, sizeof(uint8_t));
-  new_block->mem[offset] = (uint8_t) byte;
-  new_block->next = sail_memory;
-  sail_memory = new_block;
+  // TODO: assert address?
+  sail_memory.buffer[address] = byte;
+  sail_memory.mask[address] = true;
 }
 
 uint64_t read_mem(uint64_t address)
 {
-  uint64_t mask = address & ~MASK;
-  uint64_t offset = address & MASK;
-
-  struct block *current = sail_memory;
-
-  while (current != NULL) {
-    if (current->block_id == mask) {
-      return (uint64_t) current->mem[offset];
-    } else {
-      current = current->next;
-    }
-  }
-
-  return 0x00;
+  // TODO: assert address?
+  return sail_memory.buffer[address];
 }
 
 unit write_tag_bool(const uint64_t address, const bool tag)
 {
-  uint64_t mask = address & ~MASK;
-  uint64_t offset = address & MASK;
-
-  struct tag_block *current = sail_tags;
-
-  while (current != NULL) {
-    if (current->block_id == mask) {
-      current->mem[offset] = tag;
-      return UNIT;
-    } else {
-      current = current->next;
-    }
-  }
-
-  /*
-   * If we couldn't find a block matching the mask, allocate a new
-   * one, write the byte, and put it at the front of the block list.
-   */
-  struct tag_block *new_block = (struct tag_block *)malloc(sizeof(struct tag_block));
-  new_block->block_id = mask;
-  new_block->mem = (bool *)calloc(MASK + 1, sizeof(bool));
-  new_block->mem[offset] = tag;
-  new_block->next = sail_tags;
-  sail_tags = new_block;
-
+  // TODO: assert address?
+  sail_tags.buffer[address] = tag;
+  sail_tags.mask[address] = true;
   return UNIT;
 }
 
@@ -232,20 +155,8 @@ unit emulator_write_tag(const uint64_t addr_size, const sbits addr, const bool t
 
 bool read_tag_bool(const uint64_t address)
 {
-  uint64_t mask = address & ~MASK;
-  uint64_t offset = address & MASK;
-
-  struct tag_block *current = sail_tags;
-
-  while (current != NULL) {
-    if (current->block_id == mask) {
-      return current->mem[offset];
-    } else {
-      current = current->next;
-    }
-  }
-
-  return false;
+  // TODO: assert address?
+  return sail_tags.buffer[address];
 }
 
 bool emulator_read_tag(const uint64_t addr_size, const sbits addr)
@@ -255,23 +166,7 @@ bool emulator_read_tag(const uint64_t addr_size, const sbits addr)
 
 void kill_mem()
 {
-  while (sail_memory != NULL) {
-    struct block *next = sail_memory->next;
-
-    free(sail_memory->mem);
-    free(sail_memory);
-
-    sail_memory = next;
-  }
-
-  while (sail_tags != NULL) {
-    struct tag_block *next = sail_tags->next;
-
-    free(sail_tags->mem);
-    free(sail_tags);
-
-    sail_tags = next;
-  }
+  // TODO: free mem
 }
 
 // ***** Memory builtins *****
